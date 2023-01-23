@@ -80,6 +80,7 @@ inline void init_plugin_container(py::module &m) {
       .def(
           "__getitem__",
           [](PluginContainer &s, int i) {
+            std::scoped_lock lock(s.mutex);
             if (i < 0)
               i = s.getPlugins().size() + i;
             if (i < 0)
@@ -92,6 +93,7 @@ inline void init_plugin_container(py::module &m) {
       .def(
           "__setitem__",
           [](PluginContainer &s, int i, std::shared_ptr<Plugin> plugin) {
+            std::scoped_lock lock(s.mutex);
             if (i < 0)
               i = s.getPlugins().size() + i;
             if (i < 0)
@@ -104,6 +106,7 @@ inline void init_plugin_container(py::module &m) {
       .def(
           "__delitem__",
           [](PluginContainer &s, int i) {
+            std::scoped_lock lock(s.mutex);
             if (i < 0)
               i = s.getPlugins().size() + i;
             if (i < 0)
@@ -114,10 +117,15 @@ inline void init_plugin_container(py::module &m) {
             plugins.erase(plugins.begin() + i);
           },
           py::arg("index"))
-      .def("__len__", [](PluginContainer &s) { return s.getPlugins().size(); })
+      .def("__len__",
+           [](PluginContainer &s) {
+             std::scoped_lock lock(s.mutex);
+             return s.getPlugins().size();
+           })
       .def(
           "insert",
           [](PluginContainer &s, int i, std::shared_ptr<Plugin> plugin) {
+            std::scoped_lock lock(s.mutex);
             if (i < 0)
               i = s.getPlugins().size() + i;
             if (i < 0)
@@ -130,11 +138,13 @@ inline void init_plugin_container(py::module &m) {
           py::arg("index"), py::arg("plugin"))
       .def("append",
            [](PluginContainer &s, std::shared_ptr<Plugin> plugin) {
+             std::scoped_lock lock(s.mutex);
              s.getPlugins().push_back(plugin);
            })
       .def(
           "remove",
           [](PluginContainer &s, std::shared_ptr<Plugin> plugin) {
+            std::scoped_lock lock(s.mutex);
             auto &plugins = s.getPlugins();
             auto position = std::find(plugins.begin(), plugins.end(), plugin);
             if (position == plugins.end())
@@ -152,6 +162,7 @@ inline void init_plugin_container(py::module &m) {
       .def(
           "__contains__",
           [](PluginContainer &s, std::shared_ptr<Plugin> plugin) {
+            std::scoped_lock lock(s.mutex);
             auto &plugins = s.getPlugins();
             return std::find(plugins.begin(), plugins.end(), plugin) !=
                    plugins.end();
